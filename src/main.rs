@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use anyhow::Ok;
-use local_ip_address::linux::local_ip;
+use local_ip_address::local_ip;
 use tokio::net::TcpListener;
 
 use tokio::net::TcpStream;
