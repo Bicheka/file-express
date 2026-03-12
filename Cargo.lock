@@ -719,7 +719,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "p2ps"
 version = "1.0.0"
-source = "git+https://github.com/Bicheka/p2ps.git#7738e7f16a6041e405d70a5b5ce256493dbbec0d"
+source = "git+https://github.com/Bicheka/p2ps.git#6be8115c21567d31ba06f78b29a2c4bbca93ea5c"
 dependencies = [
  "anyhow",
  "hex",

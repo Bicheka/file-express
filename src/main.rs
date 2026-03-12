@@ -1,8 +1,7 @@
 use clap::{Parser, Subcommand};
 use anyhow::Ok;
-use p2ps::{CertificateDer, PrivateKeyDer};
+use p2ps::{CertificateDer, PrivateKeyDer, ring};
 use tokio::net::TcpListener;
-
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::fs::File;
 use std::fs;
@@ -51,7 +50,7 @@ enum Commands {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-
+    let _ = ring::default_provider().install_default();
     match cli.command {
         Commands::Listen { port, path, expected_client_hash } => {
             listen(port, &path, expected_client_hash).await?;
@@ -74,19 +73,22 @@ use crate::compression::unzip_file;
 
 pub async fn listen(port: u16, download_path: &str, expected_client_hash: String) -> Result<()> {
 
-    let (server_cert, server_key) = p2ps::generate_identity()?;
+    let identity_path = stringify!(get_identity_dir());
+    let cert_bytes = get_identity_file("identity.cert").expect(&format!("Could not find identity cert in path: {}, try running ***fexpress generate*** first", identity_path));
+    let cert = CertificateDer::try_from(cert_bytes)?;
+
+    let key_bytes = get_identity_file("identity.key").expect(&format!("Could not find identity key in path: {}, try running ***fexpress generate*** first", identity_path));
+    let key = PrivateKeyDer::try_from(key_bytes).unwrap();
 
 
     let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
-    println!("Listening on {}", port);
-
 
     let addr = listener.local_addr()?;
 
-    println!("Listening on {}:{}", addr, port);
+    println!("Listening on {}", addr);
 
     // let (mut socket, _) = listener.accept().await?;
-    let mut secure_conn = p2ps::accept(&listener, server_cert, server_key, expected_client_hash).await?;
+    let mut secure_conn = p2ps::accept(&listener, cert, key, expected_client_hash).await?;
 
     // Read directory flag
     let is_dir = secure_conn.stream.read_u8().await? == 1;
@@ -135,12 +137,12 @@ pub async fn listen(port: u16, download_path: &str, expected_client_hash: String
 
 pub async fn send(path: &str, addr: &str, expected_server_hash: String) -> Result<()> {
     let identity_path = stringify!(get_identity_dir());
-    let client_cert_bytes = get_identity_file("identity.cert").expect(&format!("Could not find identity cert in path: {}, try running ***fexpress generate*** first", identity_path));
-    let client_cert = CertificateDer::try_from(client_cert_bytes)?;
+    let cert_bytes = get_identity_file("identity.cert").expect(&format!("Could not find identity cert in path: {}, try running ***fexpress generate*** first", identity_path));
+    let cert = CertificateDer::try_from(cert_bytes)?;
 
-    let client_key_bytes = get_identity_file("identity.key").expect(&format!("Could not find identity key in path: {}, try running ***fexpress generate*** first", identity_path));
-    let client_key = PrivateKeyDer::try_from(client_key_bytes).unwrap();
-    let mut client_conn = p2ps::connect(addr, expected_server_hash, client_cert, client_key).await?;
+    let key_bytes = get_identity_file("identity.key").expect(&format!("Could not find identity key in path: {}, try running ***fexpress generate*** first", identity_path));
+    let key = PrivateKeyDer::try_from(key_bytes).unwrap();
+    let mut client_conn = p2ps::connect(addr, expected_server_hash, cert, key).await?;
     let path = PathBuf::from(path);
 
     let is_dir = path.is_dir();
