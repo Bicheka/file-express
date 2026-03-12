@@ -42,6 +42,7 @@ enum Commands {
         #[arg(short)]
         expected_server_hash: String
     },
+    Generate
 }
 
 #[tokio::main]
@@ -54,6 +55,9 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Send { path, to, expected_server_hash } => {
             send(&path, &to, expected_server_hash).await?;
+        }
+        Commands::Generate{} => {
+            generate()?;
         }
     }
 
@@ -172,5 +176,12 @@ pub async fn send(path: &str, addr: &str, expected_server_hash: String) -> Resul
     }
 
     println!("Transfer complete.");
+    Ok(())
+}
+
+fn generate() -> anyhow::Result<()> {
+    let (cert, _) = p2ps::generate_identity()?;
+    let hash = p2ps::get_cert_fingerprint(&cert);
+    println!("{}", hash);
     Ok(())
 }
