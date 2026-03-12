@@ -82,19 +82,19 @@ pub async fn listen(port: u16, download_path: &str, expected_client_hash: String
     // let (mut socket, _) = listener.accept().await?;
     let mut secure_conn = p2ps::accept(&listener, server_cert, server_key, expected_client_hash).await?;
 
-    // 1️⃣ Read directory flag
+    // Read directory flag
     let is_dir = secure_conn.stream.read_u8().await? == 1;
 
-    // 2️⃣ Read filename
+    // Read filename
     let name_len = secure_conn.stream.read_u64().await?;
     let mut name_buf = vec![0u8; name_len as usize];
     secure_conn.stream.read_exact(&mut name_buf).await?;
     let filename = String::from_utf8(name_buf)?;
 
-    // 3️⃣ Read file size
+    // Read file size
     let file_size = secure_conn.stream.read_u64().await?;
 
-    // 4️⃣ Create full download path
+    // Create full download path
     let mut full_path = PathBuf::from(download_path);
     full_path.push(&filename);
 
@@ -103,7 +103,7 @@ pub async fn listen(port: u16, download_path: &str, expected_client_hash: String
         tokio::fs::create_dir_all(parent).await?;
     }
 
-    // 5️⃣ Receive file
+    // Receive file
     let mut file = File::create(&full_path).await?;
     let mut received = 0;
     let mut buffer = [0u8; 64 * 1024];
@@ -153,17 +153,17 @@ pub async fn send(path: &str, addr: &str, expected_server_hash: String) -> Resul
     let metadata = file.metadata().await?;
     let filename = actual_path.file_name().unwrap().to_str().unwrap();
 
-    // 1️⃣ Send directory flag
+    // Send directory flag
     client_conn.stream.write_u8(if is_dir { 1 } else { 0 }).await?;
 
-    // 2️⃣ Send filename
+    // Send filename
     client_conn.stream.write_u64(filename.len() as u64).await?;
     client_conn.stream.write_all(filename.as_bytes()).await?;
 
-    // 3️⃣ Send file size
+    // Send file size
     client_conn.stream.write_u64(metadata.len()).await?;
 
-    // 4️⃣ Stream file
+    // Stream file
     let mut buffer = [0u8; 64 * 1024];
     loop {
         let n = file.read(&mut buffer).await?;
