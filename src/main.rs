@@ -135,10 +135,10 @@ pub async fn listen(port: u16, download_path: &str, expected_client_hash: String
 
 pub async fn send(path: &str, addr: &str, expected_server_hash: String) -> Result<()> {
     let identity_path = stringify!(get_identity_dir());
-    let client_cert_bytes = get_identity_file("identity.cert").expect(&format!("Could not find identity cert in path: {}, try running ***file-express generate*** first", identity_path));
+    let client_cert_bytes = get_identity_file("identity.cert").expect(&format!("Could not find identity cert in path: {}, try running ***fexpress generate*** first", identity_path));
     let client_cert = CertificateDer::try_from(client_cert_bytes)?;
 
-    let client_key_bytes = get_identity_file("identity.key").expect(&format!("Could not find identity key in path: {}, try running ***file-express generate*** first", identity_path));
+    let client_key_bytes = get_identity_file("identity.key").expect(&format!("Could not find identity key in path: {}, try running ***fexpress generate*** first", identity_path));
     let client_key = PrivateKeyDer::try_from(client_key_bytes).unwrap();
     let mut client_conn = p2ps::connect(addr, expected_server_hash, client_cert, client_key).await?;
     let path = PathBuf::from(path);
@@ -222,6 +222,6 @@ fn get_identity_file(file_name: &str) -> anyhow::Result<Vec<u8>>{
 fn get_identity_dir() -> PathBuf{
     let home_dir= std::env::home_dir().expect("Impossible to get your home dir!");
     let dir: PathBuf = home_dir
-    .join(".file_express");
+    .join(".fexpress");
     dir
 }
