@@ -1,9 +1,11 @@
 use clap::{Parser, Subcommand};
 use anyhow::Ok;
+use p2ps::{CertificateDer, PrivateKeyDer};
 use tokio::net::TcpListener;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::fs::File;
+use std::fs;
 use std::path::PathBuf;
 use anyhow::Result;
 
@@ -42,7 +44,8 @@ enum Commands {
         #[arg(short)]
         expected_server_hash: String
     },
-    Generate
+    Generate,
+    Hash
 }
 
 #[tokio::main]
@@ -56,8 +59,11 @@ async fn main() -> anyhow::Result<()> {
         Commands::Send { path, to, expected_server_hash } => {
             send(&path, &to, expected_server_hash).await?;
         }
-        Commands::Generate{} => {
+        Commands::Generate {} => {
             generate()?;
+        },
+        Commands::Hash {} => {
+            get_hash()?;
         }
     }
 
@@ -128,7 +134,12 @@ pub async fn listen(port: u16, download_path: &str, expected_client_hash: String
 }
 
 pub async fn send(path: &str, addr: &str, expected_server_hash: String) -> Result<()> {
-    let (client_cert, client_key) = p2ps::generate_identity()?;
+    let identity_path = stringify!(get_identity_dir());
+    let client_cert_bytes = get_identity_file("identity.cert").expect(&format!("Could not find identity cert in path: {}, try running ***file-express generate*** first", identity_path));
+    let client_cert = CertificateDer::try_from(client_cert_bytes)?;
+
+    let client_key_bytes = get_identity_file("identity.key").expect(&format!("Could not find identity key in path: {}, try running ***file-express generate*** first", identity_path));
+    let client_key = PrivateKeyDer::try_from(client_key_bytes).unwrap();
     let mut client_conn = p2ps::connect(addr, expected_server_hash, client_cert, client_key).await?;
     let path = PathBuf::from(path);
 
@@ -180,8 +191,37 @@ pub async fn send(path: &str, addr: &str, expected_server_hash: String) -> Resul
 }
 
 fn generate() -> anyhow::Result<()> {
-    let (cert, _) = p2ps::generate_identity()?;
+    let (cert, key) = p2ps::generate_identity()?;
+
+    // get user home directory
+    let identity_dir = get_identity_dir();
+    println!("path: {:?}", identity_dir);
+    // store certs and keys there
+    fs::create_dir_all(&identity_dir)?;
+    fs::write(identity_dir.join("identity.cert"), cert)?;
+    fs::write(identity_dir.join("identity.key"), key.secret_der())?;
+    get_hash().expect("Could not generate hash");
+    Ok(())
+}
+
+fn get_hash() -> anyhow::Result<String>{
+    // get cert
+    let cert_bytes = get_identity_file("identity.cert")?;
+    let cert = CertificateDer::try_from(cert_bytes)?;
     let hash = p2ps::get_cert_fingerprint(&cert);
     println!("{}", hash);
-    Ok(())
+    return Ok(hash);
+}
+
+fn get_identity_file(file_name: &str) -> anyhow::Result<Vec<u8>>{
+    let cert_path = get_identity_dir()
+    .join(file_name);
+    Ok(fs::read(cert_path)?)
+}
+
+fn get_identity_dir() -> PathBuf{
+    let home_dir= std::env::home_dir().expect("Impossible to get your home dir!");
+    let dir: PathBuf = home_dir
+    .join(".file_express");
+    dir
 }
