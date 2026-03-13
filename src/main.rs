@@ -126,18 +126,13 @@ pub async fn listen(port: u16, download_path: &str, expected_client_hash: String
     }
 
     // Receive file
-    let mut file = File::create(&full_path).await?;
-    let mut received = 0;
-    let mut buffer = [0u8; 64 * 1024];
+    let file = File::create(&full_path).await?;
+    let mut file = tokio::io::BufWriter::with_capacity(1024 * 1024, file);
 
-    while received < file_size {
-        let n = secure_conn.stream.read(&mut buffer).await?;
-        if n == 0 { break; }
-        file.write_all(&buffer[..n]).await?;
-        received += n as u64;
-    }
+    let mut limited = (&mut secure_conn.stream).take(file_size);
+    tokio::io::copy(&mut limited, &mut file).await?;
 
-    // ADD THIS: Tell the sender we received everything successfully
+    // Tell sender transfer completed
     secure_conn.stream.write_u8(1).await?;
     secure_conn.stream.flush().await?;
 
@@ -161,6 +156,10 @@ pub async fn send(path: &str, addr: &str, expected_server_hash: String) -> Resul
     let key_bytes = get_identity_file("identity.key").expect(&format!("Could not find identity key in path: {}, try running ***fexpress generate*** first", identity_path.display()));
     let key = PrivateKeyDer::try_from(key_bytes).unwrap();
     let mut client_conn = p2ps::connect(addr, expected_server_hash, cert, key).await?;
+
+    // access the underlaying tcp socket and sets nodelay to true, this disables Nagle’s algorithm, which can slow transfers.
+    client_conn.stream.get_ref().0.set_nodelay(true)?;
+
     let path = PathBuf::from(path);
 
     let is_dir = path.is_dir();
@@ -180,8 +179,11 @@ pub async fn send(path: &str, addr: &str, expected_server_hash: String) -> Resul
         path.clone()
     };
 
-    let mut file = File::open(&actual_path).await?;
+    let file = tokio::fs::File::open(&actual_path).await?;
     let metadata = file.metadata().await?;
+
+    // set disk buffer to 1 MB to improve disk throughput
+    let mut file = tokio::io::BufReader::with_capacity(1024 * 1024, file);
     let filename = actual_path.file_name().unwrap().to_str().unwrap();
 
     // Send directory flag
@@ -195,12 +197,7 @@ pub async fn send(path: &str, addr: &str, expected_server_hash: String) -> Resul
     client_conn.stream.write_u64(metadata.len()).await?;
 
     // Stream file
-    let mut buffer = [0u8; 64 * 1024];
-    loop {
-        let n = file.read(&mut buffer).await?;
-        if n == 0 { break; }
-        client_conn.stream.write_all(&buffer[..n]).await?;
-    }
+    tokio::io::copy(&mut file, &mut client_conn.stream).await?;
 
     if is_dir {
         tokio::fs::remove_file(&actual_path).await?;
