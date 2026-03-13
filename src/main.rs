@@ -1,12 +1,13 @@
 use clap::{Parser, Subcommand};
 use anyhow::Ok;
-use local_ip_address::linux::local_ip;
+use local_ip_address::local_ip;
 use p2ps::{CertificateDer, PrivateKeyDer, ring};
 use tokio::net::TcpListener;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::fs::File;
 use std::fs;
 use std::path::PathBuf;
+use std::time::Instant;
 use anyhow::Result;
 
 use crate::compression::start_compressing;
@@ -54,10 +55,14 @@ async fn main() -> anyhow::Result<()> {
     let _ = ring::default_provider().install_default();
     match cli.command {
         Commands::Listen { port, path, expected_client_hash } => {
+            let start = Instant::now();
             listen(port, &path, expected_client_hash).await?;
+            println!("Time elapsed: {:?}", start.elapsed().as_secs());
         }
         Commands::Send { path, to, expected_server_hash } => {
+            let start = Instant::now();
             send(&path, &to, expected_server_hash).await?;
+            println!("Time elapsed: {:?}", start.elapsed().as_secs());
         }
         Commands::Generate {} => {
             generate()?;
