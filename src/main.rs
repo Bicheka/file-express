@@ -55,9 +55,7 @@ async fn main() -> anyhow::Result<()> {
     let _ = ring::default_provider().install_default();
     match cli.command {
         Commands::Listen { port, path, expected_client_hash } => {
-            let start = Instant::now();
             listen(port, &path, expected_client_hash).await?;
-            println!("Time elapsed: {:?}", start.elapsed().as_secs());
         }
         Commands::Send { path, to, expected_server_hash } => {
             let start = Instant::now();
@@ -99,6 +97,7 @@ pub async fn listen(port: u16, download_path: &str, expected_client_hash: String
     let ip = local_ip()?;
     println!("Sender should connect to: {}:{}", ip, port);
 
+    let start = Instant::now();
     // let (mut socket, _) = listener.accept().await?;
     let mut secure_conn = p2ps::accept(&listener, cert, key, expected_client_hash).await?;
 
@@ -144,7 +143,7 @@ pub async fn listen(port: u16, download_path: &str, expected_client_hash: String
         tokio::fs::remove_file(&full_path).await?;
         println!("Directory extracted.");
     }
-
+    println!("Time elapsed: {:?}", start.elapsed().as_secs());
     Ok(())
 }
 
