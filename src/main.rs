@@ -81,6 +81,13 @@ pub async fn listen(port: u16, download_path: &str, expected_client_hash: String
     let key_bytes = get_identity_file("identity.key").expect(&format!("Could not find identity key in path: {}, try running ***fexpress generate*** first", identity_path.display()));
     let key = PrivateKeyDer::try_from(key_bytes).unwrap();
 
+    let expanded_path = if download_path.starts_with("~/") {
+        let home = std::env::home_dir().expect("Could not find home directory");
+        home.join(&download_path[2..])
+    } else {
+        PathBuf::from(download_path)
+    };
+
     let listener = TcpListener::bind(("0.0.0.0", port)).await?;
 
     // print best LAN IP for sender to use
@@ -103,8 +110,10 @@ pub async fn listen(port: u16, download_path: &str, expected_client_hash: String
     let file_size = secure_conn.stream.read_u64().await?;
 
     // Create full download path
-    let mut full_path = PathBuf::from(download_path);
+    let mut full_path = expanded_path;
     full_path.push(&filename);
+
+    println!("Full download path: {}", full_path.display());
 
     // Ensure parent directories exist
     if let Some(parent) = full_path.parent() {
