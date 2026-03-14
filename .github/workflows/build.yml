@@ -1,0 +1,56 @@
+name: Build fexpress binaries
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            name: fexpress-linux
+
+          - os: ubuntu-latest
+            target: x86_64-pc-windows-gnu
+            name: fexpress-windows.exe
+
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            name: fexpress-macos-intel
+
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            name: fexpress-macos-apple-silicon
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Rename binary
+        run: |
+          mkdir dist
+          if [[ "${{ matrix.target }}" == *"windows"* ]]; then
+            cp target/${{ matrix.target }}/release/fexpress.exe dist/${{ matrix.name }}
+          else
+            cp target/${{ matrix.target }}/release/fexpress dist/${{ matrix.name }}
+          fi
+        shell: bash
+
+      - name: Upload binary to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
