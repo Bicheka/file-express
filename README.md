@@ -2,7 +2,7 @@
 # File Express
 
 *FileExpres* (`fexpress`) is a simple and secure peer-to-peer file transfer CLI written in Rust.  
-It allows two peers to send files or directories directly over the network using encrypted connections.
+It allows two peers in the same LAN to send files or directories directly over the network using encrypted connections.
 
 The program uses a TLS-based P2P authentication system where peers verify each other using **certificate fingerprints**.
 
