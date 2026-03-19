@@ -15,6 +15,23 @@ The program uses a TLS-based P2P authentication system where peers verify each o
 - 🧩 **Cross-platform (Linux, macOS, Windows)**
 - ⚡ **Asynchronous networking using Tokio**
 
+## Installation
+### Install via Cargo (if you have rust installed)
+```
+cargo install --git https://github.com/Bicheka/file-express.git
+```
+
+### Linux / MacOs
+```
+curl -fsSL https://raw.githubusercontent.com/bicheka/file-express/main/install-gommit.sh | sudo bash
+```
+
+### Windows
+Run this in powershell to install
+```
+iwr -useb https://raw.githubusercontent.com/Bicheka/file-express/main/install.ps1 | iex
+```
+or download the binary from releases and add it to the path manually
 
 ## Usage / Examples
 
