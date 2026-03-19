@@ -23,7 +23,7 @@ cargo install --git https://github.com/Bicheka/file-express.git
 
 ### Linux / MacOs
 ```
-curl -fsSL https://raw.githubusercontent.com/bicheka/file-express/main/install-gommit.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/bicheka/file-express/main/install.sh | sudo bash
 ```
 
 ### Windows
