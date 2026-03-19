@@ -19,26 +19,26 @@ jobs:
           # Linux (Statically linked via musl to avoid glibc issues)
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            artifact_name: file-express
-            asset_name: file-express-linux-amd64
+            artifact_name: fexpress
+            asset_name: fxpress-linux-amd64
           
           # macOS (Intel)
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: file-express
-            asset_name: file-express-macos-amd64
+            artifact_name: fexpress
+            asset_name: fexpress-macos-amd64
             
           # macOS (Apple Silicon)
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact_name: file-express
-            asset_name: file-express-macos-arm64
+            artifact_name: fexpress
+            asset_name: fexpress-macos-arm64
             
           # Windows
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: file-express.exe
-            asset_name: file-express-windows-amd64.exe
+            artifact_name: fexpress.exe
+            asset_name: fexpress-windows-amd64.exe
 
     steps:
       - name: Checkout repository
