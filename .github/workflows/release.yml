@@ -20,7 +20,7 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             artifact_name: fexpress
-            asset_name: fxpress-linux-amd64
+            asset_name: fexpress-linux-amd64
           
           # macOS (Intel)
           - os: macos-latest
